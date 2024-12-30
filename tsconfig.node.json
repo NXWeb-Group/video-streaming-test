@@ -1,0 +1,30 @@
+{
+  "extends": "@tsconfig/node22/tsconfig.json",
+  "include": ["index.ts", "server/**/*"],
+  "compilerOptions": {
+    // Build options
+    "composite": false,
+    "outDir": "./dist",
+    "rootDir": "./",
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+
+    // Module settings
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "esModuleInterop": true,
+
+    // Source maps
+    "sourceMap": false,
+    "inlineSourceMap": false,
+
+    // Type checking
+    "strict": true,
+    "types": ["node"],
+
+    // JavaScript support
+    "allowJs": true,
+    "checkJs": false,
+
+    "declaration": false
+  }
+}
