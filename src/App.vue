@@ -1,59 +1,45 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
+import { RouterLink, RouterView } from 'vue-router'
 import { ref, onMounted } from 'vue';
+import { store } from '@/assets/store';
+import newPost from '@/components/NewPost.vue';
 
-const fileInput = ref<HTMLInputElement | null>(null);
 const message = ref<string | null>(null);
-const videos = ref<{ id: number, path: string }[]>([]);
+const posts = ref<{ id: number, title: string }[]>([]);
 
-async function getVideos() {
-  fetch('/get')
+function getPost() {
+  fetch('/api/get')
     .then(response => response.json())
     .then(data => {
-      videos.value = data;
+      posts.value = data;
     });
 }
 
-async function uploadVideo() {
-  if (!fileInput.value || !fileInput.value.files || fileInput.value.files.length === 0) {
-    message.value = "Please select a video file.";
-    return;
-  }
-
-  const formData = new FormData();
-  formData.append('video', fileInput.value.files[0]);
-
-  try {
-    const response = await fetch('/upload', {
-      method: 'POST',
-      body: formData,
+async function logout() {
+  fetch('/api/logout', { method: 'POST', })
+    .then(response => {
+      if (response.ok) {
+        // window.location.href = '/';
+      }
     });
-
-    if (!response.ok) {
-      throw new Error('Error uploading file.');
-    }
-
-    const data = await response.text();
-    message.value = data;
-    getVideos();
-  } catch (error) {
-    console.error(error);
-    message.value = "Error uploading file.";
-  }
-};
+}
 
 onMounted(() => {
-  getVideos();
+  getPost();
 });
 </script>
 
 <template>
   <h1>{{ message }}</h1>
-  <form @submit.prevent="uploadVideo">
-    <input type="file" ref="fileInput" accept="video/*" />
-    <button type="submit">Upload</button>
-  </form>
-  <RouterLink v-for="video in videos" :key="video.id" :to="'/play/' + encodeURIComponent(video.path)">Watch Video
+
+  <RouterLink to="/">Home</RouterLink>
+  <button @click="logout">Logout</button>
+  <RouterLink to="/account">Account</RouterLink>
+  <button @click="store.newpost = true">New Post</button>
+  <newPost v-if="store.newpost" @refresh="getPost" />
+
+  <RouterLink v-for="post in posts" :key="post.id" :to="`/post/${post.id}`">
+    {{ post.title }}
   </RouterLink>
 
   <RouterView />

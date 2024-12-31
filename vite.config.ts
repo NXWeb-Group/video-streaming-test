@@ -15,5 +15,6 @@ export default defineConfig(({ mode }) => ({
 
   build: {
     outDir: "dist/vue",
+    sourcemap: true,
   },
 }));

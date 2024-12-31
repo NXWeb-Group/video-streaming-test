@@ -1,34 +1,52 @@
 import mysql from "mysql2/promise";
 
-async function initializeDatabase() {
-  const connection = await mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASS,
-  });
-
+async function ensure() {
+  let connection;
   try {
-    await connection.query(`CREATE DATABASE IF NOT EXISTS idk`);
-    await connection.query(`USE idk`);
+    connection = await mysql.createConnection({
+      host: process.env.DB_HOST || "localhost",
+      user: process.env.DB_USER || "root",
+      password: process.env.DB_PASS || "",
+    });
+    await connection.query(`CREATE DATABASE IF NOT EXISTS \`idk\``);
+    await connection.query(`USE \`idk\``);
     console.log("Database ensured.");
 
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS videos (
+      CREATE TABLE IF NOT EXISTS accounts (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        path VARCHAR(255) NOT NULL
+        username VARCHAR(255) NOT NULL UNIQUE,
+        hashed_password VARCHAR(255) NOT NULL
       );
     `);
-    console.log("Table ensured.");
+    console.log("Table 'accounts' ensured.");
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS posts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        userId INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        description TEXT NOT NULL,
+        media JSON,
+        FOREIGN KEY (userId) REFERENCES accounts(id)
+      );
+    `);
+    console.log("Table 'posts' ensured.");
   } catch (err) {
     console.error("Error ensuring database and table:", err);
+  } finally {
+    if (connection) connection.end();
   }
-
-  return connection;
 }
 
-let db: mysql.Connection;
-initializeDatabase().then((connection) => {
-  db = connection;
-  console.log("Connected to database.");
+await ensure();
+
+export const pool = mysql.createPool({
+  host: process.env.DB_HOST || "localhost",
+  user: process.env.DB_USER || "root",
+  password: process.env.DB_PASS || "",
+  database: process.env.DB_NAME || "idk",
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
 });
-export { db };

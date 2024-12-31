@@ -1,32 +1,39 @@
 import "dotenv/config";
 import express from "express";
 import path from "node:path";
-import multer from "multer";
-
-import { db } from "./server/sqlconnect.js";
-import { tohls } from "./server/ffmpeg.js";
+import session from "express-session";
+import MySQLStore from "express-mysql-session";
+import passport from "passport";
+import cookieParser from "cookie-parser";
+import { api } from "./server/api.js";
+import { pool } from "./server/sqlconnect.js";
+import "./server/passport.js";
 
 const port = 8080;
 const app = express();
-const upload = multer({ dest: "uploads/" });
+
+// @ts-expect-error idk
+const MySQLStoreSession = MySQLStore(session);
+// @ts-expect-error idk
+const sessionStore = new MySQLStoreSession({}, pool);
 
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(cookieParser());
+app.use("/files/", express.static("files"));
 app.use(express.static("dist/vue"));
-app.use("/hls", express.static("hls"));
-
-app.post("/upload", upload.single("video"), (req, res) => {
-  tohls(req, res);
-});
-
-app.get("/get", async (req, res) => {
-  try {
-    const [rows] = await db.query("SELECT * FROM videos");
-    res.send(rows);
-  } catch (err) {
-    console.error("Error getting videos:", err);
-    res.status(500).send("Error getting videos.");
-  }
-});
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "default_secret",
+    resave: false,
+    saveUninitialized: false,
+    store: sessionStore,
+    cookie: { secure: false },
+  })
+);
+app.use(passport.initialize());
+app.use(passport.session());
+app.use("/api/", api);
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(process.cwd(), "dist/vue/index.html"));
